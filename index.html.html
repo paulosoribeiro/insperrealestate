@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notas de Aula: Matemática Financeira no Real Estate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Chosen Palette: Warm neutrals (stone/slate) for text readability, subtle navy and emerald for charts/accents -->
+    <!-- Application Structure Plan: A digital textbook/lecture notes layout. Features a sticky sidebar for easy navigation across the 'two days' of content. Interactive sections allow users to input parameters and see real-time charts (Compound Interest and Amortization), bridging theory and practice. The 30 exercises are rendered dynamically via JS to keep the HTML structure clean and performant, with toggleable answer keys. -->
+    <!-- Visualization & Content Choices: 
+         1. Compound Interest Curve -> Goal: Show exponential growth of land value/debt -> Line Chart (Chart.js) -> Interactive inputs -> Justification: Visualizing the 'hockey stick' curve is crucial for TVM intuition. 
+         2. SAC vs Price Comparison -> Goal: Compare cash outflows over time -> Line/Bar Chart (Chart.js) -> Interactive parameters -> Justification: Overlays decreasing SAC installments against constant Price installments. 
+         All libraries strictly Chart.js. NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        /* Typography & Print Adjustments */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        h1, h2, h3, h4, .serif-font { font-family: 'Merriweather', serif; }
+        
+        .chart-container { position: relative; width: 100%; max-width: 800px; margin: 2rem auto; height: 350px; }
+        .formula-box { background-color: #f1f5f9; border-left: 4px solid #3b82f6; padding: 1rem; margin: 1rem 0; border-radius: 0 0.5rem 0.5rem 0; font-family: monospace; font-size: 0.95rem; }
+        
+        /* Excel Formula Styling */
+        .excel-tag { display: inline-block; background: #16a34a; color: white; padding: 0.1rem 0.4rem; border-radius: 0.25rem; font-weight: bold; font-family: 'Inter', sans-serif; font-size: 0.75rem; vertical-align: middle; margin-right: 0.5rem; }
+        
+        @media print {
+            body { background-color: white; }
+            #sidebar, #print-btn { display: none; }
+            #main-content { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
+            .page-break { page-break-before: always; }
+            .no-break { page-break-inside: avoid; }
+            .shadow-sm, .shadow-md, .shadow-lg { box-shadow: none !important; border: 1px solid #e2e8f0; }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Top Navbar for Mobile -->
+    <nav class="md:hidden bg-slate-900 text-white p-4 sticky top-0 z-50 flex justify-between items-center">
+        <div class="font-bold font-serif">Finanças: Real Estate</div>
+        <button id="mobile-menu-btn" class="text-2xl">&#9776;</button>
+    </nav>
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="hidden md:flex flex-col w-64 bg-slate-900 text-slate-300 fixed h-full overflow-y-auto z-40 transition-transform">
+            <div class="p-6">
+                <h2 class="text-xl font-bold text-white mb-2 serif-font">Notas de Aula</h2>
+                <p class="text-sm text-slate-400 mb-6">Prof. Paulo Ribeiro<br>13/04/2026 e 14/04/2026</p>
+                <nav class="space-y-1">
+                    <a href="#intro" class="block py-2 px-3 hover:bg-slate-800 rounded transition text-white font-medium">Introdução</a>
+                    <div class="mt-4 mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Aula 1 (13/04)</div>
+                    <a href="#vdt" class="block py-2 px-3 hover:bg-slate-800 rounded transition text-sm">&#128176; Valor do Dinheiro no Tempo</a>
+                    <a href="#taxas" class="block py-2 px-3 hover:bg-slate-800 rounded transition text-sm">&#128257; Taxas Equivalentes</a>
+                    <div class="mt-4 mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Aula 2 (14/04)</div>
+                    <a href="#vpl-tir" class="block py-2 px-3 hover:bg-slate-800 rounded transition text-sm">&#128200; VPL e TIR</a>
+                    <a href="#amortizacao" class="block py-2 px-3 hover:bg-slate-800 rounded transition text-sm">&#127960; Sistemas SAC e Price</a>
+                    <div class="mt-4 mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Prática</div>
+                    <a href="#exercicios" class="block py-2 px-3 hover:bg-slate-800 rounded transition text-sm">&#128221; Bateria de Exercícios (30)</a>
+                </nav>
+            </div>
+            <div class="mt-auto p-6">
+                <button onclick="window.print()" id="print-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded shadow transition flex justify-center items-center gap-2">
+                    <span>&#128424;</span> Salvar PDF / Imprimir
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="main-content" class="flex-1 md:ml-64 p-6 md:p-12 lg:px-24 bg-white max-w-5xl mx-auto border-x border-slate-200 shadow-sm">
+            
+            <!-- Header section -->
+            <header id="intro" class="mb-12 border-b border-slate-200 pb-8 text-center md:text-left">
+                <h1 class="text-3xl md:text-5xl font-bold text-slate-900 mb-4 leading-tight">Matemática Financeira Aplicada ao Real Estate</h1>
+                <div class="flex flex-col md:flex-row md:items-center justify-between text-slate-600 text-lg">
+                    <p><strong>Autor:</strong> Prof. Paulo Ribeiro</p>
+                    <p><strong>Datas:</strong> 13/04/2026 (Aula 1) e 14/04/2026 (Aula 2)</p>
+                </div>
+                <div class="mt-8 bg-slate-50 p-6 rounded-lg text-slate-700 leading-relaxed text-justify">
+                    <p class="mb-4">Prezados alunos e trainees, bem-vindos. Este material foi desenhado de forma pragmática e direta para conectar os fundamentos financeiros às operações reais do mercado imobiliário brasileiro.</p>
+                    <p>Nesta jornada de dois encontros, transformaremos fórmulas áridas em ferramentas de decisão. Começamos hoje compreendendo como o tempo corrói ou multiplica o capital (Juros Compostos e Taxas). Amanhã, conectaremos esse conhecimento para avaliar a viabilidade de grandes projetos imobiliários (VPL/TIR) e estruturar financiamentos (SAC/Price). Todo o conteúdo é traduzido para a linguagem que o mercado fala: a linguagem algébrica para compreensão lógica, e o <strong>Excel</strong> para execução tática. Boa leitura.</p>
+                </div>
+            </header>
+
+            <!-- AULA 1 -->
+            <div class="page-break"></div>
+            <section id="vdt" class="mb-16">
+                <div class="inline-block bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full text-sm mb-4">Aula 1 - 13/04/2026</div>
+                <h2 class="text-3xl font-bold text-slate-900 mb-6 border-b-2 border-blue-500 inline-block pb-2">1. Valor do Dinheiro no Tempo (VDT)</h2>
+                
+                <p class="text-lg text-slate-700 mb-4 leading-relaxed text-justify">O princípio fundamental de finanças no setor imobiliário é simples: R$ 1 milhão hoje não tem o mesmo valor que R$ 1 milhão daqui a 5 anos. No Real Estate, onde o ciclo de vida dos projetos (da compra do terreno à entrega das chaves) é longo, o tempo é uma variável crítica que embute o <strong>Custo de Oportunidade</strong> e o <strong>Risco</strong>.</p>
+                
+                <div class="bg-white border border-slate-200 shadow-sm rounded-lg p-6 mb-8 no-break">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">&#128218; Abordagem Algébrica (Regime de Capitalização Composta)</h3>
+                    <p class="text-slate-700 mb-4">No mercado imobiliário, utilizamos exclusivamente os juros compostos ("juros sobre juros"). A fórmula mestre é:</p>
+                    <div class="text-center text-2xl font-serif font-bold text-slate-900 my-4 p-4 bg-slate-50 rounded">
+                        FV = PV &times; (1 + i)<sup>n</sup>
+                    </div>
+                    <ul class="grid grid-cols-1 md:grid-cols-2 gap-4 text-slate-700 text-sm mt-4">
+                        <li><strong>FV (Future Value):</strong> Valor Futuro (VGV futuro, valor de revenda).</li>
+                        <li><strong>PV (Present Value):</strong> Valor Presente (Custo do terreno hoje, aporte).</li>
+                        <li><strong>i (Interest rate):</strong> Taxa de juros (Custo de capital, taxa de atratividade).</li>
+                        <li><strong>n (Time):</strong> Prazo (Meses de obra, anos de maturação).</li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-50 border-l-4 border-emerald-500 p-6 mb-8 no-break">
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">Exemplo Prático: Landbank (Banco de Terrenos)</h3>
+                    <p class="text-slate-700 mb-4">A incorporadora <strong>Cyrela</strong> (referência: <a href="https://ri.cyrela.com.br" target="_blank" class="text-blue-600 underline">ri.cyrela.com.br</a>) estuda a compra de um terreno em São Paulo por <strong>R$ 45.000.000,00</strong>. Devido a trâmites de aprovação na prefeitura, o lançamento ocorrerá apenas em <strong>3 anos</strong>. O custo de capital (taxa de exigência) da empresa é de <strong>12% ao ano</strong>. Quanto o projeto precisará absorver apenas para empatar o custo desse terreno parado no tempo?</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                        <div class="bg-white p-4 rounded shadow-sm border border-slate-200">
+                            <h4 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-2">Dados</h4>
+                            <p class="font-mono text-sm">PV = - 45.000.000</p>
+                            <p class="font-mono text-sm">i = 12% a.a. (0,12)</p>
+                            <p class="font-mono text-sm">n = 3 anos</p>
+                        </div>
+                        <div class="bg-white p-4 rounded shadow-sm border border-slate-200 col-span-2">
+                            <h4 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-2">Soluções</h4>
+                            <p class="text-sm mb-2"><strong>Algébrica:</strong> FV = 45.000.000 &times; (1 + 0,12)<sup>3</sup> = <strong>R$ 63.221.760,00</strong></p>
+                            <div class="bg-slate-100 p-2 rounded font-mono text-sm flex items-center">
+                                <span class="excel-tag">EXCEL</span> <code>=VF(12%; 3; 0; -45000000)</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive TVM Chart -->
+                <div class="border border-slate-200 rounded-lg p-6 bg-white no-break">
+                    <h3 class="text-lg font-bold text-slate-800 mb-2 flex justify-between items-center">
+                        <span>&#128187; Simulador: Evolução do Landbank</span>
+                        <span class="text-xs font-normal bg-blue-100 text-blue-800 px-2 py-1 rounded">Interativo</span>
+                    </h3>
+                    <p class="text-sm text-slate-500 mb-4">Ajuste a taxa de custo de capital para visualizar o efeito exponencial dos juros sobre o custo do terreno ao longo de 10 anos.</p>
+                    
+                    <div class="flex items-center gap-4 mb-4">
+                        <label for="tvmRate" class="font-bold text-sm text-slate-700">Taxa a.a.:</label>
+                        <input type="range" id="tvmRate" min="5" max="25" value="12" class="w-48 cursor-pointer">
+                        <span id="tvmRateVal" class="font-mono font-bold text-blue-600">12%</span>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="tvmChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <div class="page-break"></div>
+            <section id="taxas" class="mb-16">
+                <h2 class="text-3xl font-bold text-slate-900 mb-6 border-b-2 border-blue-500 inline-block pb-2">2. Taxas Equivalentes</h2>
+                
+                <p class="text-lg text-slate-700 mb-4 leading-relaxed text-justify">O mercado imobiliário brasileiro opera frequentemente com prazos em meses (financiamento, aluguel), mas expressa taxas em anos. Por atuar em juros compostos, <strong>não podemos simplesmente dividir uma taxa anual por 12</strong>. Uma taxa de 12% a.a. NÃO é 1% ao mês em juros compostos. Precisamos encontrar a taxa que, capitalizada mensalmente, resulta no mesmo montante anual.</p>
+
+                <div class="formula-box no-break">
+                    <p class="text-slate-800 font-bold mb-2 font-serif text-lg">Fórmula de Conversão:</p>
+                    <div class="text-center text-xl text-slate-900 my-2 bg-white border border-slate-200 py-3 rounded">
+                        (1 + i<sub>maior</sub>) = (1 + i<sub>menor</sub>)<sup>n</sup>
+                    </div>
+                    <p class="text-sm text-slate-600 text-center mt-2">Para Anual &#8594; Mensal: i<sub>m</sub> = (1 + i<sub>a</sub>)<sup>(1/12)</sup> - 1</p>
+                </div>
+
+                <div class="bg-slate-50 border-l-4 border-blue-500 p-6 mt-6 no-break">
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">Exemplo Prático: Financiamento na Planta</h3>
+                    <p class="text-slate-700 mb-4">A construtora <strong>MRV</strong> (referência: <a href="https://ri.mrv.com.br" target="_blank" class="text-blue-600 underline">ri.mrv.com.br</a>) vende unidades na planta com saldo devedor corrigido a uma taxa de juros de <strong>9,5% ao ano</strong> (além da inflação IPCA). Para calcular a parcela mensal que o cliente vai pagar, o estruturador financeiro precisa converter essa taxa para o equivalente mensal.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                        <div class="bg-white p-4 rounded shadow-sm border border-slate-200">
+                            <h4 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-2">Resolução Algébrica / Numérica</h4>
+                            <p class="font-mono text-sm mb-1">i<sub>a</sub> = 0,095</p>
+                            <p class="font-mono text-sm mb-1">i<sub>m</sub> = (1 + 0,095)<sup>(1/12)</sup> - 1</p>
+                            <p class="font-mono text-sm mb-1">i<sub>m</sub> = (1,095)<sup>0,08333</sup> - 1</p>
+                            <p class="font-mono text-sm font-bold text-blue-600">i<sub>m</sub> = 0,00759 ou 0,759% a.m.</p>
+                            <p class="text-xs text-slate-500 mt-2"><em>*Note que dividir 9,5% por 12 daria erroneamente 0,791%. O cliente pagaria a mais!</em></p>
+                        </div>
+                        <div class="bg-white p-4 rounded shadow-sm border border-slate-200 flex flex-col justify-center">
+                            <h4 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-2">Como fazer no Excel</h4>
+                            <div class="bg-slate-100 p-2 rounded font-mono text-sm mb-2 break-all">
+                                <code>=(1 + 9,5%)^(1/12) - 1</code>
+                            </div>
+                            <p class="text-sm text-slate-600 mb-1">Ou usando fórmula nativa:</p>
+                            <div class="bg-slate-100 p-2 rounded font-mono text-sm flex items-center">
+                                <span class="excel-tag">EXCEL</span> <code>=TAXA(12; 0; -1; 1+9,5%)</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AULA 2 -->
+            <div class="page-break"></div>
+            <section id="vpl-tir" class="mb-16">
+                <div class="inline-block bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full text-sm mb-4">Aula 2 - 14/04/2026</div>
+                <h2 class="text-3xl font-bold text-slate-900 mb-6 border-b-2 border-blue-500 inline-block pb-2">3. VPL e TIR na Análise de Viabilidade</h2>
+                
+                <p class="text-lg text-slate-700 mb-4 leading-relaxed text-justify">Conectando com nossa aula de ontem: se o dinheiro tem valor no tempo, como comparamos fluxos de caixa de saídas (obras) que ocorrem hoje com entradas (vendas/aluguel) que ocorrerão no futuro? Utilizamos o <strong>Valor Presente Líquido (VPL)</strong> e a <strong>Taxa Interna de Retorno (TIR)</strong>, a espinha dorsal de qualquer comitê de investimentos imobiliários.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 no-break">
+                    <div class="bg-white border border-slate-200 p-6 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-bold text-slate-800 mb-3 text-center">&#128176; VPL (NPV)</h3>
+                        <p class="text-sm text-slate-700 mb-3">É a soma de todos os fluxos de caixa (positivos e negativos) trazidos a valor presente, descontados pelo custo de capital do projeto (TMA - Taxa Mínima de Atratividade).</p>
+                        <ul class="text-sm text-slate-600 list-disc pl-5">
+                            <li><strong>VPL > 0:</strong> O projeto gera valor acima do custo de capital. (Aprovar)</li>
+                            <li><strong>VPL < 0:</strong> O projeto destrói valor. (Rejeitar)</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white border border-slate-200 p-6 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-bold text-slate-800 mb-3 text-center">&#128200; TIR (IRR)</h3>
+                        <p class="text-sm text-slate-700 mb-3">É a taxa de rentabilidade intrínseca do projeto. Matematicamente, é a taxa de desconto que faz o VPL ser exatamente igual a ZERO.</p>
+                        <ul class="text-sm text-slate-600 list-disc pl-5">
+                            <li><strong>TIR > Custo de Capital:</strong> (Aprovar)</li>
+                            <li><strong>TIR < Custo de Capital:</strong> (Rejeitar)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 border-l-4 border-slate-800 p-6 no-break">
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">Exemplo Prático: Retrofit de Edifício Comercial (Properties)</h3>
+                    <p class="text-slate-700 mb-4">A <strong>Multiplan</strong> estuda comprar e realizar um "retrofit" (reforma para modernização) em um prédio na Av. Faria Lima. O desembolso imediato (Compra + Obra) é de R$ 100 Milhões (Ano 0). O projeto prevê fluxos líquidos de locação e posterior venda estruturados assim (em Milhões): Ano 1: R$ 10M, Ano 2: R$ 20M, Ano 3: R$ 40M, Ano 4: R$ 80M. O custo de capital é de <strong>15% a.a.</strong> O projeto é viável?</p>
+                    
+                    <div class="overflow-x-auto mb-4">
+                        <table class="w-full text-sm text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-200">
+                                    <th class="p-2 border border-slate-300">Ano</th>
+                                    <th class="p-2 border border-slate-300">0</th>
+                                    <th class="p-2 border border-slate-300">1</th>
+                                    <th class="p-2 border border-slate-300">2</th>
+                                    <th class="p-2 border border-slate-300">3</th>
+                                    <th class="p-2 border border-slate-300">4</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="font-bold p-2 border border-slate-300">Fluxo (R$ M)</td>
+                                    <td class="text-red-600 p-2 border border-slate-300">-100</td>
+                                    <td class="text-emerald-600 p-2 border border-slate-300">10</td>
+                                    <td class="text-emerald-600 p-2 border border-slate-300">20</td>
+                                    <td class="text-emerald-600 p-2 border border-slate-300">40</td>
+                                    <td class="text-emerald-600 p-2 border border-slate-300">80</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="bg-white p-4 rounded shadow-sm border border-slate-200 mt-4">
+                        <h4 class="font-bold text-sm text-slate-800 mb-2 flex items-center gap-2"><span class="excel-tag">EXCEL</span> Resolução Numérica e Sintaxe</h4>
+                        <p class="font-mono text-sm text-slate-600 mb-1"><code>VPL = (-100) + (10/1,15) + (20/1,15&sup2;) + (40/1,15&sup3;) + (80/1,15&#8308;)</code></p>
+                        <p class="font-mono text-sm text-slate-600 mb-3">VPL = -100 + 8,70 + 15,12 + 26,30 + 45,74 = <span class="font-bold text-red-600">-R$ 4,14 Milhões</span> (Projeto Inviável)</p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="bg-slate-100 p-3 rounded text-sm font-mono">
+                                <span class="block text-xs text-slate-500 mb-1">No Excel (VPL):</span>
+                                <code>=VPL(15%; 10; 20; 40; 80) - 100</code>
+                            </div>
+                            <div class="bg-slate-100 p-3 rounded text-sm font-mono">
+                                <span class="block text-xs text-slate-500 mb-1">No Excel (TIR):</span>
+                                <code>=TIR({-100; 10; 20; 40; 80})</code><br>
+                                <span class="text-slate-600 mt-1 block">Resultado: 13,38% (Abaixo dos 15% exigidos)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="page-break"></div>
+            <section id="amortizacao" class="mb-16">
+                <h2 class="text-3xl font-bold text-slate-900 mb-6 border-b-2 border-blue-500 inline-block pb-2">4. Sistemas de Amortização (SAC e Price)</h2>
+                
+                <p class="text-lg text-slate-700 mb-4 leading-relaxed text-justify">O repasse ao banco (ou o financiamento direto com a incorporadora) é o momento final da cadeia do Real Estate. A devolução do capital emprestado ocorre via Parcela, que é sempre composta por duas partes: <strong>Amortização (devolução do principal) + Juros (aluguel do dinheiro)</strong>.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 no-break">
+                    <div class="border-t-4 border-blue-600 bg-white p-5 shadow-sm rounded-b">
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">Sistema SAC</h3>
+                        <p class="text-sm text-slate-500 italic mb-2">Sistema de Amortização Constante</p>
+                        <p class="text-sm text-slate-700 mb-3">Muito comum no financiamento imobiliário brasileiro (SFH). A <strong>amortização é fixa</strong> em todos os meses. Como o saldo devedor cai rápido, os juros diminuem e a <strong>parcela é decrescente</strong>.</p>
+                        <ul class="text-sm font-mono bg-slate-50 p-2 rounded">
+                            <li>Amort = Valor / n</li>
+                            <li>Juros = Saldo Anterior &times; i</li>
+                            <li>Parcela = Amort + Juros</li>
+                        </ul>
+                    </div>
+                    <div class="border-t-4 border-emerald-600 bg-white p-5 shadow-sm rounded-b">
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">Sistema Price</h3>
+                        <p class="text-sm text-slate-500 italic mb-2">Sistema Francês</p>
+                        <p class="text-sm text-slate-700 mb-3">Mais comum em financiamentos corporativos e crédito direto ao consumidor. A <strong>parcela é fixa</strong> do início ao fim. No começo paga-se muito juro; no final, amortiza-se muito.</p>
+                        <ul class="text-sm font-mono bg-slate-50 p-2 rounded">
+                            <li class="flex items-center"><span class="excel-tag mt-1 mb-1 text-[10px]">EXCEL</span> Parcela: <code>=PGTO(i; n; -PV)</code></li>
+                            <li class="flex items-center"><span class="excel-tag mt-1 mb-1 text-[10px]">EXCEL</span> Amort n: <code>=PPGTO(i; periodo; n; -PV)</code></li>
+                            <li class="flex items-center"><span class="excel-tag mt-1 mb-1 text-[10px]">EXCEL</span> Juros n: <code>=IPGTO(i; periodo; n; -PV)</code></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Interactive Amortization Chart -->
+                <div class="border border-slate-200 rounded-lg p-6 bg-white no-break">
+                    <h3 class="text-lg font-bold text-slate-800 mb-2 flex justify-between items-center">
+                        <span>&#128187; Simulador: Evolução da Parcela (SAC vs Price)</span>
+                        <span class="text-xs font-normal bg-blue-100 text-blue-800 px-2 py-1 rounded">Interativo</span>
+                    </h3>
+                    <p class="text-sm text-slate-500 mb-4">Financiamento de R$ 500.000,00 da <strong>Eztec</strong>. Ajuste os meses de pagamento para visualizar a diferença no formato das parcelas.</p>
+                    
+                    <div class="flex items-center gap-4 mb-4">
+                        <label for="amortMeses" class="font-bold text-sm text-slate-700">Prazo (Meses):</label>
+                        <select id="amortMeses" class="border border-slate-300 rounded p-1 cursor-pointer bg-white">
+                            <option value="60">60 Meses</option>
+                            <option value="120" selected>120 Meses</option>
+                            <option value="240">240 Meses</option>
+                            <option value="360">360 Meses</option>
+                        </select>
+                        <span class="text-sm text-slate-500 hidden md:inline ml-4">Taxa Fixada: 1% a.m.</span>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="amortChart"></canvas>
+                    </div>
+                    <p class="text-xs text-center text-slate-500 mt-2">No SAC (Azul), o esforço financeiro inicial é maior, mas decai. Na Price (Verde), a previsibilidade de caixa é garantida.</p>
+                </div>
+            </section>
+
+            <!-- EXERCISES SECTION (Dynamically Populated) -->
+            <div class="page-break"></div>
+            <section id="exercicios" class="mb-16">
+                <h2 class="text-3xl font-bold text-slate-900 mb-6 border-b-2 border-blue-500 inline-block pb-2">Prática: Bateria de 30 Exercícios</h2>
+                <p class="text-lg text-slate-700 mb-6 leading-relaxed">Fixação dos conceitos apresentados através de cenários baseados na realidade do Real Estate brasileiro (fontes de inspiração: relatórios gerenciais de FIIs, dados do SECOVI-SP e fatos relevantes de incorporadoras de capital aberto).</p>
+
+                <div class="mb-4 flex justify-end gap-2 no-break">
+                    <button onclick="toggleAllAnswers(true)" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-800 py-1 px-3 rounded transition">Mostrar todos gabaritos</button>
+                    <button onclick="toggleAllAnswers(false)" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-800 py-1 px-3 rounded transition">Esconder todos</button>
+                </div>
+
+                <div id="exercises-container" class="space-y-4">
+                    <!-- Exercises injected via JS to maintain clean code structure -->
+                </div>
+            </section>
+
+            <footer class="mt-16 pt-8 border-t border-slate-200 text-center text-slate-500 text-sm">
+                <p>Material exclusivo elaborado pelo Prof. Paulo Ribeiro para o treinamento de Finanças do Insper Real Estate.</p>
+                <p>Gerado para as datas: 13 e 14 de Abril de 2026.</p>
+            </footer>
+
+        </main>
+    </div>
+
+    <script>
+        // --- Navigation Logic for Mobile ---
+        document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('hidden');
+            sidebar.classList.toggle('absolute');
+            sidebar.classList.toggle('bg-slate-900');
+            sidebar.classList.toggle('w-full');
+            sidebar.classList.toggle('h-screen');
+        });
+
+        // --- Chart 1: TVM (Compound Interest) ---
+        const ctxTvm = document.getElementById('tvmChart').getContext('2d');
+        let tvmChartInstance;
+        
+        function updateTvmChart(rateAnn) {
+            const rate = rateAnn / 100;
+            const pv = 45000000;
+            const labels = Array.from({length: 11}, (_, i) => `Ano ${i}`);
+            const data = labels.map((_, year) => (pv * Math.pow(1 + rate, year)) / 1000000); // In Millions
+
+            if(tvmChartInstance) {
+                tvmChartInstance.data.datasets[0].data = data;
+                tvmChartInstance.update();
+            } else {
+                tvmChartInstance = new Chart(ctxTvm, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Custo Corrigido do Terreno (R$ Milhões)',
+                            data: data,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#1e3a8a',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: { 
+                                callbacks: { 
+                                    label: (ctx) => `R$ ${ctx.parsed.y.toFixed(2)} Milhões`
+                                }
+                            },
+                            legend: { position: 'bottom' }
+                        },
+                        scales: {
+                            y: { 
+                                title: { display: true, text: 'R$ Milhões' },
+                                beginAtZero: false,
+                                suggestedMin: 40
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        document.getElementById('tvmRate').addEventListener('input', (e) => {
+            document.getElementById('tvmRateVal').innerText = `${e.target.value}%`;
+            updateTvmChart(parseFloat(e.target.value));
+        });
+        updateTvmChart(12); // Initial load
+
+        // --- Chart 2: SAC vs Price Amortization ---
+        const ctxAmort = document.getElementById('amortChart').getContext('2d');
+        let amortChartInstance;
+
+        function updateAmortChart(months) {
+            const pv = 500000;
+            const rate = 0.01; // 1% a.m.
+            
+            // Generate Labels (downsample for performance/visibility if n is large)
+            const step = months > 120 ? Math.floor(months / 20) : (months > 60 ? 12 : 6);
+            const labels = [];
+            const dataSAC = [];
+            const dataPrice = [];
+
+            // Price Calculation (Constant PMT)
+            const pmtPrice = (pv * rate) / (1 - Math.pow(1 + rate, -months));
+
+            // SAC Calculation
+            const amort = pv / months;
+            
+            for (let i = 1; i <= months; i++) {
+                if (i === 1 || i === months || i % step === 0) {
+                    labels.push(`Mês ${i}`);
+                    const jurosSAC = (pv - (i - 1) * amort) * rate;
+                    dataSAC.push(amort + jurosSAC);
+                    dataPrice.push(pmtPrice);
+                }
+            }
+
+            if(amortChartInstance) {
+                amortChartInstance.data.labels = labels;
+                amortChartInstance.data.datasets[0].data = dataSAC;
+                amortChartInstance.data.datasets[1].data = dataPrice;
+                amortChartInstance.update();
+            } else {
+                amortChartInstance = new Chart(ctxAmort, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Parcela SAC',
+                                data: dataSAC,
+                                borderColor: '#2563eb', // Blue
+                                backgroundColor: '#2563eb',
+                                borderWidth: 2,
+                                tension: 0.1
+                            },
+                            {
+                                label: 'Parcela PRICE',
+                                data: dataPrice,
+                                borderColor: '#10b981', // Emerald
+                                backgroundColor: '#10b981',
+                                borderDash: [5, 5],
+                                borderWidth: 2,
+                                tension: 0.1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: { 
+                                callbacks: { 
+                                    label: (ctx) => `${ctx.dataset.label}: R$ ${ctx.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+                                }
+                            },
+                            legend: { position: 'bottom' }
+                        },
+                        scales: {
+                            y: { 
+                                title: { display: true, text: 'Valor da Parcela (R$)' },
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        document.getElementById('amortMeses').addEventListener('change', (e) => {
+            updateAmortChart(parseInt(e.target.value));
+        });
+        updateAmortChart(120); // Initial load
+
+
+        // --- Practice Exercises Data & Rendering ---
+        // Programmatically generated text-heavy content to maintain neat HTML
+        const exercises = [
+            // Juros Compostos (VDT)
+            {q: "Uma área de terreno na região metropolitana de SP foi adquirida pela Direcional por R$ 15 milhões. A empresa estima que o valor de mercado das terras na região sobe 8% ao ano. Se a incorporadora decidir fazer o lançamento daqui a 4 anos, qual será o valor de mercado estimado do terreno?", a: "Algébrica: FV = 15.000.000 * (1 + 0,08)^4 = R$ 20.407.334,40. Excel: =VF(8%; 4; 0; -15000000)"},
+            {q: "Um fundo imobiliário (FII) comprou galpões logísticos da GLP. Uma grande reforma (capex) de R$ 5 milhões precisa ser feita hoje. O FII exige um retorno de 11% ao ano sobre seus investimentos. Quanto o fundo deve arrecadar a mais no momento da renovação do contrato de aluguel, que ocorre daqui a 5 anos, para justificar essa obra (considerando pagamento único no ano 5)?", a: "Algébrica: FV = 5.000.000 * (1 + 0,11)^5 = R$ 8.425.290,00. Excel: =VF(11%; 5; 0; -50000000)"},
+            {q: "A JHSF avalia vender um lote na Fazenda Boa Vista por R$ 3.500.000,00 para recebimento à vista. Um cliente propôs pagar R$ 4.800.000,00 em um pagamento único daqui a 3 anos. Considerando que a JHSF aplica seu caixa a 10% a.a., a proposta é financeiramente melhor que a venda à vista?", a: "Sim. Trazendo a proposta a Valor Presente: PV = 4.800.000 / (1 + 0,10)^3 = R$ 3.606.311,04. Como VP > 3,5M, é melhor. Excel: =VP(10%; 3; 0; -48000000)."},
+            {q: "O SECOVI informou que o INCC (índice de custo da construção) variou cerca de 18% acumulado nos últimos 2 anos. Qual foi a taxa equivalente anualizada de inflação da construção nesse período?", a: "Algébrica: ia = (1 + 0,18)^(1/2) - 1 = 8,627% a.a. Excel: =(1+18%)^(1/2)-1"},
+            {q: "Uma família comprou um apartamento da Even por R$ 800 mil e o vendeu 6 anos depois por R$ 1,2 milhão. Qual foi a taxa de valorização (rentabilidade) anualizada obtida nessa operação?", a: "Algébrica: i = (FV/PV)^(1/n) - 1 -> (1.2M/0.8M)^(1/6) - 1 = 6,99% a.a. Excel: =TAXA(6; 0; -800000; 1200000)"},
+            {q: "A Tenda projeta que um terreno custará R$ 10.000.000 daqui a 2 anos (já com inflação projetada). Se a taxa de desconto da empresa é de 13% a.a., qual é o limite máximo que ela deve pagar por esse terreno hoje?", a: "Algébrica: PV = 10.000.000 / (1 + 0,13)^2 = R$ 7.831.455,89. Excel: =VP(13%; 2; 0; -10000000)"},
+            {q: "Um comprador atrasou a parcela de chaves de R$ 150.000,00 com a incorporadora. O contrato reza multa de juros de 1% ao mês pro-rata temporis (juros compostos diários base 30 dias). Ele pagou com 18 dias de atraso. Qual o valor pago?", a: "Taxa para 18 dias: (1 + 0,01)^(18/30) - 1 = 0,598%. FV = 150.000 * 1,00598 = R$ 150.897,29."},
+            {q: "A Birmann Properties vendeu lajes comerciais e acordou receber o saldo em pagamento único de R$ 50 milhões daqui a 48 meses. Se a taxa do contrato é de 0,8% a.m., qual o valor presente dessa operação?", a: "Algébrica: PV = 50.000.000 / (1 + 0,008)^48 = R$ 34.116.892,72. Excel: =VP(0,8%; 48; 0; -50000000)"},
+            // Taxas Equivalentes (9-15)
+            {q: "Contratos de aluguel logístico tipicamente são reajustados pelo IPCA. Suponha que o IPCA projetado para o ano é de 6%. Qual é a taxa de inflação equivalente mensal que deve ser projetada nas planilhas?", a: "Algébrica: im = (1 + 0,06)^(1/12) - 1 = 0,486% a.m. Excel: =(1+6%)^(1/12)-1"},
+            {q: "O CDI, benchmark para fundos imobiliários de papel, fechou o ano a 10,75%. Qual é a taxa mensal equivalente?", a: "Algébrica: im = (1 + 0,1075)^(1/12) - 1 = 0,854% a.m. Excel: =(1+10,75%)^(1/12)-1"},
+            {q: "A MRV oferece um financiamento de saldo remanescente a uma taxa de 0,95% ao mês. Para comparar com uma linha de crédito imobiliário bancário, calcule a taxa equivalente anualizada.", a: "Algébrica: ia = (1 + 0,0095)^12 - 1 = 12,01% a.a. Excel: =VF(0,95%; 12; 0; -1)-1"},
+            {q: "Um CRI (Certificado de Recebíveis Imobiliários) emitido pela HSI paga investidores uma taxa de 14% ao ano. Qual é a taxa semestral equivalente (pagamento de cupons)?", a: "Algébrica: is = (1 + 0,14)^(1/2) - 1 = 6,77% a.s. Excel: =(1+14%)^(1/2)-1"},
+            {q: "A construtora Trisul obteve um empréstimo para capital de giro a uma taxa trimestral de 3,5%. Qual o custo anual equivalente dessa dívida?", a: "Algébrica: ia = (1 + 0,035)^4 - 1 = 14,75% a.a. (Pois há 4 trimestres no ano). Excel: =VF(3,5%; 4; 0; -1)-1"},
+            {q: "Ao analisar dados do SECOVI sobre rentabilidade de locação (yield) na Vila Madalena, observou-se um yield mensal médio de 0,4%. Qual o yield anual equivalente esperado para o investidor?", a: "Algébrica: ia = (1 + 0,004)^12 - 1 = 4,90% a.a. Excel: =(1+0,4%)^12-1"},
+            {q: "Em debêntures de infraestrutura imobiliária, é comum cotar taxas em dias úteis (base 252 dias). Se a taxa anual prometida é 12% a.a. (252 du), qual a taxa equivalente diária?", a: "Algébrica: id = (1 + 0,12)^(1/252) - 1 = 0,0449% ao dia útil. Excel: =(1+12%)^(1/252)-1"},
+            // VPL e TIR (16-24)
+            {q: "Um investidor pessoa física compra um 'studio' na planta (Vitacon) por R$ 300.000 à vista. Ele recebe as chaves em 2 anos (receitas 0 no perídodo). No ano 3 e 4 aluga liquidamente por R$ 20.000/ano. No final do ano 4 vende o imóvel por R$ 350.000. Custo de oportunidade de 8% a.a. Qual o VPL do negócio?", a: "Fluxos (Ano 0 a 4): -300k, 0, 0, 20k, 370k. VPL = -300 + 0 + 0 + 20/1.08^3 + 370/1.08^4 = R$ -11.966,57. Negócio destrói valor frente aos 8%."},
+            {q: "Referente ao exercício anterior, qual foi a TIR real do projeto para o investidor do studio?", a: "Usando =TIR({-300000; 0; 0; 200000; 370000}). A TIR é a taxa que zera a equação: 300 = 20/(1+TIR)^3 + 370/(1+TIR)^4. Resultado: 6,86% a.a."},
+            {q: "A Log Commercial Properties constrói um galpão. Desembolso Ano 0: R$ 80 M. Desembolso Ano 1: R$ 20 M. A partir do Ano 2 até Ano 5, os aluguéis líquidos rendem R$ 15 M/ano. No Ano 5 vende o ativo por R$ 110 M. Taxa de Desconto = 12%. Qual o VPL?", a: "Fluxos: -80, -20, 15, 15, 15, (15+110). VPL = -80 - (20/1.12) + (15/1.12^2) + ... + (125/1.12^5) = R$ -5,98 M. Excel: =VPL(12%; -20; 15; 15; 15; 125) - 80."},
+            {q: "Referente ao galpão da Log, calcule a TIR da operação.", a: "Excel: =TIR({-80; -20; 15; 15; 15; 125}). TIR = 10,23%. Como TIR (10.23%) < TMA (12%), aprova o resultado negativo do VPL."},
+            {q: "Uma Sociedade de Propósito Específico (SPE) de loteamento gasta R$ 1M hoje. Receberá fluxo fixo mensal de R$ 50.000 nos próximos 36 meses das vendas parceladas. Qual a TIR MENSAL do loteamento?", a: "Excel: =TIR( selecionar fluxo: -1000000, 50000 [36 vezes] ). A TIR MENSAL é de 2,60% a.m."},
+            {q: "A Iguatemi avalia expansão de shopping. Investimento inicial de R$ 50M. Se a TIR exigida (taxa limite) do conselho é 14% a.a., e o projeto prevê fluxos anuais perpétuos e iguais a partir do ano 1, qual a receita líquida anual mínima exigida? (Dica: PV de perpetuidade = PGT / i).", a: "Para VPL=0, Investimento = VPL Perp. -> 50.000.000 = PGT / 0,14. -> PGT = R$ 7.000.000,00 anuais mínimos."},
+            {q: "Por que no setor imobiliário a TIR pode ser enganosa em projetos que têm forte reinvestimento ou fluxos negativos no meio do projeto (Ex: obra em fase 2)?", a: "Conceitual: Projetos com inversão de sinal (ex: -, +, -, +) podem gerar Múltiplas TIRs (matematicamente, a equação de grau n tem mais de uma raiz real positiva), não sendo um indicador confiável para decisão. Usa-se VPL ou TIR Modificada (MTIR)."},
+            {q: "FII compra participação em Shopping. Custo: R$ 40M. Dividendos anuais esperados (A1 a A4): 3M, 3.5M, 4M, 4M. Preço de venda em A4: R$ 45M. TMA do fundo: 10% a.a. Encontre o VPL.", a: "Fluxos: -40; 3; 3.5; 4; 49. VPL = -40 + 2.72 + 2.89 + 3.00 + 33.46 = R$ +2,07 Milhões. Excel: =VPL(10%; 3; 3.5; 4; 49) - 40."},
+            {q: "Incorporadora Helbor possui projeto com TIR de 18% a.a. A Selic (Custo de oportunidade base) subiu drasticamente, levando o custo de capital médio (WACC) da empresa para 20% a.a. O que acontece com o VPL do projeto?", a: "O VPL se tornará negativo. Como a taxa de desconto (20%) agora é maior que a taxa intrínseca de retorno (18%), o projeto passa a destruir valor e deve ser cancelado ou reestruturado."},
+            // Amortização SAC e Price (25-30)
+            {q: "Um casal financia R$ 600.000 de um apartamento no Itaú. Tabela SAC. Prazo 240 meses. Taxa: 0,8% a.m. Qual o valor da AMORTIZAÇÃO na primeira parcela?", a: "SAC -> Amortização Constante. Amort = Principal / prazo = 600.000 / 240 = R$ 2.500,00 mensais fixos para amortização."},
+            {q: "No mesmo caso (SAC, 600k, 240m, 0.8% am), qual o valor total da PRIMEIRA parcela a ser paga?", a: "Juros1 = Saldo Anterior * taxa = 600.000 * 0,008 = R$ 4.800,00. Parcela 1 = Amort + Juros = 2.500 + 4.800 = R$ 7.300,00."},
+            {q: "Ainda no caso anterior (SAC), qual o valor da SEGUNDA parcela?", a: "O Saldo devedor caiu (600k - 2.5k = 597.500). Juros2 = 597.500 * 0,008 = R$ 4.780. Parcela 2 = 2.500 + 4.780 = R$ 7.280,00."},
+            {q: "Um pequeno construtor faz capital de giro de R$ 1.000.000 no modelo Tabela PRICE, prazo 60 meses, taxa 1,5% ao mês. Qual o valor da parcela mensal fixa?", a: "Fórmula de anuidades ou Excel. Excel: =PGTO(1,5%; 60; -1000000). Resultado = R$ 25.393,43 mensais."},
+            {q: "No caso do construtor acima (Price), quanto da PARCELA 1 é referente a pagamento de juros?", a: "Juros1 incide sobre o saldo total cheio. Juros1 = 1.000.000 * 0,015 = R$ 15.000,00. Excel: =IPGTO(1,5%; 1; 60; -1000000)."},
+            {q: "Qual sistema de amortização o gerente de aprovação de crédito de um banco (Risk Manager) prefere para aprovar o financiamento de um cliente Pessoa Física visando mitigar risco de inadimplência, assumindo que a primeira parcela cabe na renda?", a: "Sistema SAC. Como o saldo devedor cai mais rápido no SAC (a amortização inicial é mais agressiva que na Price), a exposição ao risco da garantia pelo banco (Loan to Value) diminui de forma mais célere. Além disso, a parcela cai ao longo do tempo, adequando-se melhor a eventuais perdas de renda futura do cliente."}
+        ];
+
+        const container = document.getElementById('exercises-container');
+        
+        exercises.forEach((ex, index) => {
+            const div = document.createElement('div');
+            div.className = "border border-slate-200 rounded-lg overflow-hidden page-break-inside-avoid no-break";
+            div.innerHTML = `
+                <button class="w-full text-left p-4 bg-white hover:bg-slate-50 transition flex justify-between items-center focus:outline-none" onclick="toggleAnswer(${index})">
+                    <span class="font-bold text-slate-800"><span class="text-blue-600 mr-2">${index + 1}.</span> ${ex.q}</span>
+                    <span id="icon-${index}" class="text-slate-400 font-bold">&#43;</span>
+                </button>
+                <div id="ans-${index}" class="hidden p-4 bg-slate-50 border-t border-slate-200 text-sm text-slate-700">
+                    <strong class="text-slate-900 block mb-1 text-xs uppercase tracking-wider">Resolução / Gabarito:</strong>
+                    ${ex.a}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+
+        function toggleAnswer(index) {
+            const ansDiv = document.getElementById(`ans-${index}`);
+            const icon = document.getElementById(`icon-${index}`);
+            if (ansDiv.classList.contains('hidden')) {
+                ansDiv.classList.remove('hidden');
+                icon.innerHTML = '&#8722;'; // Minus
+            } else {
+                ansDiv.classList.add('hidden');
+                icon.innerHTML = '&#43;'; // Plus
+            }
+        }
+
+        function toggleAllAnswers(show) {
+            exercises.forEach((_, index) => {
+                const ansDiv = document.getElementById(`ans-${index}`);
+                const icon = document.getElementById(`icon-${index}`);
+                if (show) {
+                    ansDiv.classList.remove('hidden');
+                    icon.innerHTML = '&#8722;';
+                } else {
+                    ansDiv.classList.add('hidden');
+                    icon.innerHTML = '&#43;';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
